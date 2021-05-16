@@ -1,41 +1,21 @@
 #include <Arduino.h>
 #include <Stepper.h>
 
-// #define SPEED_IN  A0; //uno
-#define SPEED_IN 3 //attiny
-
+// ADC3 (PINB3) for analog input
+#define SPEED_IN 3 
 
 // Define number of steps per rotation:
-// const int stepsPerRevolution = 2048;
 const int stepsPerRevolution = 4096;
-// Wiring:
-// Pin 8 to IN1 on the ULN2003 driver
-// Pin 9 to IN2 on the ULN2003 driver
-// Pin 10 to IN3 on the ULN2003 driver
-// Pin 11 to IN4 on the ULN2003 driver
-// Create stepper object called 'myStepper', note the pin order:
-
-//From 
-//
-//The pin connections need to be 4 pins connected
-// to Motor Driver In1, In2, In3, In4  and then the pins entered
-// here in the sequence 1-3-2-4 for proper sequencingStepper small_stepper(STEPS, 0, 2, 1, 3);
-//Stepper stepper(STEPS, 8, 9, 10, 11);       // For other Arduino
-// Note that with the 28BYJ-48 you have to wire it "wrong" for it to turn backwards.
-// When pins defined 0, 2, 1, 3 actually wire it 0, 1, 2, 3
-//my setup: in1 -> 8, in2 -> 9, in3 -> 10, in4 -> 11; fixed sequence is 8,10,9,11
-//arduino
-// Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
-//attiny 2, 1, 0, 4 -> 2, 0, 1, 4
+//Attiny85 connection
+// PB2 -> IN 1
+// PB1 -> IN 2
+// PB0 -> IN 3
+// PB4 -> IN 4
+// For the stepper libraray to work, we need to swap the middle pair (IN2 and IN3)
+// So our sequnece is 2, 1, 0, 4 > 2, 0, 1, 4
 Stepper myStepper = Stepper(stepsPerRevolution, 2, 0, 1, 4);
 
-
-
-int stepCount = 0;  // number of steps the motor has taken
-
 void setup() {
-  // nothing to do inside the setup
-  // Serial.begin(9600);
   pinMode(0, OUTPUT);
   pinMode(1, OUTPUT);
   pinMode(2, OUTPUT);
@@ -44,26 +24,22 @@ void setup() {
 }
 
 void loop() {
-  // read the sensor value:
-  int sensorReading = analogRead(SPEED_IN);
-  // map it to a range from 0 to 100:
+  // read the potentiometer value, will be used to controll both speed and direction.
+  int sensorReading = analogRead(SPEED_IN); 
+
   int motorSpeed = 0;
   int stepSign = 1;
-  if (sensorReading < 512) {
+  if (sensorReading < 512) { // reverse direction
     stepSign = -1;
     sensorReading = 512 - sensorReading;
-  } else if (sensorReading >= 512) {
+  } else if (sensorReading >= 512) { //forward direction
     sensorReading = sensorReading - 512;
   }
+  //50 found experimentally, the motor can go faster byt it's not interesting for the use case we have
   motorSpeed = map(sensorReading, 0, 512, 0, 50);
-  // Serial.print(sensorReading); Serial");
-  // Serial.println(motorSpeed * stepSign);
 
   if (motorSpeed > 0) {
-    // myStepper.setSpeed(motorSpeed);
     myStepper.setSpeed(motorSpeed);
     myStepper.step(stepSign * motorSpeed);
-    // myStepper.step(stepSign * stepsPerRevolution / 100);
   }
-
 }
